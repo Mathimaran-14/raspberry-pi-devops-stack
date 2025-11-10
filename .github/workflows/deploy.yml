@@ -1,0 +1,38 @@
+name: Deploy Monitoring Stack
+
+on:
+  # Triggers the workflow manually from the GitHub Actions tab (for testing)
+  workflow_dispatch:
+  # Triggers the workflow whenever code is pushed to the 'main' branch
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy_stack:
+    # Use the name of your running self-hosted runner
+    runs-on: [self-hosted, Shield, ARM64] 
+    
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Log In via SSH and Redeploy Docker Stack
+        # This action allows the runner to SSH into the Pi (itself) to run Docker commands
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          # Use your IP or hostname (Shield.local)
+          host: ${{ secrets.RASPI_HOST }}
+          username: maran                 # Your remote user
+          key: ${{ secrets.RASPI_SSH_KEY }} # Private key stored as a GitHub Secret
+          script: |
+            echo "Starting deployment of Docker Compose stack..."
+            
+            # Navigate to the directory containing docker-compose.yml
+            cd /home/maran/monitoring_stack/ 
+            
+            # Pull latest images and redeploy services
+            docker compose pull
+            docker compose up -d --remove-orphans
+            
+            echo "Deployment complete. Monitoring services are online."

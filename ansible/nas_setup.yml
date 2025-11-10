@@ -1,0 +1,57 @@
+---
+- name: Configure Raspberry Pi NAS Server (Phase 1 IaC)
+  hosts: nas_servers
+  become: yes # Use sudo/root privileges for installation and configuration
+
+  vars:
+    nas_user: "devops_admin"
+    share_path: "/mnt/nas_share"
+    samba_package: "samba"
+
+  tasks:
+    - name: 1. Ensure required packages (Samba) are installed
+      ansible.builtin.apt:
+        name: "{{ samba_package }}"
+        state: present
+        update_cache: yes
+
+    - name: 2. Create the NAS share directory
+      ansible.builtin.file:
+        path: "{{ share_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: 3. Create dedicated NAS admin user (without login shell)
+      ansible.builtin.user:
+        name: "{{ nas_user }}"
+        state: present
+        comment: "NAS Admin User"
+        shell: "/usr/sbin/nologin" # Prevents SSH login for this user
+
+    - name: 4. Set permissions and ownership for the share directory
+      ansible.builtin.file:
+        path: "{{ share_path }}"
+        owner: "{{ nas_user }}"
+        group: "{{ nas_user }}"
+        recurse: yes
+
+    - name: 5. Configure Samba share settings
+      ansible.builtin.blockinfile:
+        path: /etc/samba/smb.conf
+        block: |
+          [DevOpsShare]
+            comment = Raspberry Pi DevOps Storage
+            path = {{ share_path }}
+            browseable = yes
+            writable = yes
+            read only = no
+            create mask = 0775
+            directory mask = 0775
+            valid users = @{{ nas_user }}
+        insertafter: EOF
+        marker: "# {mark} ANSIBLE MANAGED BLOCK FOR DEVOPS SHARE"
+
+    - name: 6. Restart Samba service to apply changes
+      ansible.builtin.service:
+        name: smbd
+        state: restarted

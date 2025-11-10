@@ -1,0 +1,31 @@
+# Raspberry Pi Self-Healing DevOps Stack
+
+**Goal:** This project demonstrates mastery of modern DevOps practices by building a resilient, automated CI/CD pipeline managed entirely on a self-hosted Raspberry Pi (ARM64). It proves the ability to manage infrastructure, containerization, and observability.
+
+## 🛠️ Core Technology Stack
+
+| Function | Tool | Skill Demonstrated |
+| :--- | :--- | :--- |
+| **Infrastructure as Code (IaC)** | **Ansible** | Provisioning and configuration of the NAS server. |
+| **Containerization** | **Docker / Docker Compose** | Defining and orchestrating the monitoring services. |
+| **Observability** | **Prometheus, Grafana, Loki** | Full metrics and logging solution. |
+| **Automation** | **GitHub Actions** | CI/CD pipeline using a self-hosted runner. |
+
+## 📐 Project Architecture (Deployment Flow)
+
+1.  **Foundation:** Raspberry Pi is provisioned via Ansible (IaC) with Docker and Git installed.
+2.  **Runner Activation:** The **GitHub Actions Runner** is installed, patched, and runs as a background service (`systemd`).
+3.  **CI/CD Trigger:** A code commit to the repository triggers the workflow.
+4.  **Self-Healing Deployment:** The runner securely authenticates (via SSH Key/Secrets) back to the host, pulls the latest images, and runs the final **`docker compose up -d`** command. This ensures the monitoring stack is always online and in the correct state. 
+
+## 🚀 Status: Production Ready
+
+All phases are complete. The CI/CD pipeline is active and ready to process deployments.
+
+## ⚠️ Key Technical Hurdles Overcome
+
+This project required expert troubleshooting due to ARM64 and software conflicts:
+
+* **Service Integration Fix:** Solved the persistent **`status=203/EXEC`** error and **`404 Not Found`** bug by manually patching the runner's systemd service file (`actions.runner...service`), correcting the executable path and adding necessary startup flags.
+* **Dependency Resolution:** Overcame compilation failures (Build Wheel errors) and missing system dependencies by utilizing **Docker Compose binaries** and manually installing specific libraries (e.g., `libssl-dev`).
+* **Security:** Implemented **GitHub Secrets** for all sensitive credentials, including the private SSH key used by the runner to log into the target host.
